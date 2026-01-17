@@ -1,27 +1,41 @@
 package org.example;
 
-import org.example.cli.ArgumentParser;
-import org.example.cli.Arguments;
+import org.example.filter.ClassificationResult;
+import org.example.filter.LineClassifier;
 
-import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
 
 public class App {
-    public static void main(String[] args) throws IOException {
-        try {
-            ArgumentParser parser = new ArgumentParser();
-            Arguments arguments = parser.parse(args);
+    public static void main(String[] args) {
+        LineClassifier classifier = new LineClassifier();
 
-            System.out.println("Statistics mode: " + arguments.getStatisticsMode());
-            System.out.println("Append: " + arguments.isAppend());
-            System.out.println("Output directory: " + arguments.getOutputDir());
-            System.out.println("Prefix: " + arguments.getPrefix());
-            System.out.println("Input files: " + arguments.getInputFiles());
+        TxtFileReader txtFileReader = new TxtFileReader();
 
-        } catch (Exception e) {
-            System.err.println("Ошибка запуска: " + e.getMessage());
+        Path path = Paths.get("D:\\IdeaProjects\\заданиеШифт\\TxtFilterUtil\\src\\main\\resources\\In1.txt");
+
+
+        List<String> testLines = txtFileReader.readTxt(path);
+
+        for (String line : testLines) {
+            ClassificationResult result = classifier.classify(line);
+            switch (result.getType()) {
+                case INTEGER:
+                    BigInteger bi = result.getValue();
+                    System.out.println("INTEGER: " + bi);
+                    break;
+                case FLOAT:
+                    BigDecimal bd = result.getValue();
+                    System.out.println("FLOAT: " + bd);
+                    break;
+                case STRING:
+                    String st = result.getValue();
+                    System.out.println("STRING: " + st);
+                    break;
+            }
         }
-        TxtFileWriter txtFileWriter = new TxtFileWriter();
-        txtFileWriter.writeFiles();
-        System.out.println("что-то произошло, проверяй");
     }
 }
