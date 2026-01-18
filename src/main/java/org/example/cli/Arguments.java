@@ -29,6 +29,9 @@ public class Arguments {
     public boolean isAppend() {
         return append;
     }
+    public boolean isFullStats() {
+        return statisticsMode == StatisticsMode.FULL;
+    }
 
     public Path getOutputDir() {
         return outputDir;
