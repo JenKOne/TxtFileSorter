@@ -21,10 +21,10 @@ public class ArgumentParser {
 
             switch (arg) {
                 case "-s":
-                    statisticsMode = statisticsMode.SHORT;
+                    statisticsMode = StatisticsMode.SHORT;
                     break;
                 case "-f":
-                    statisticsMode = statisticsMode.FULL;
+                    statisticsMode = StatisticsMode.FULL;
                     break;
                 case "-a":
                     append = true;

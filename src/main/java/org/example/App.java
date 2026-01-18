@@ -1,54 +1,100 @@
 package org.example;
 
+import org.example.cli.Arguments;
+import org.example.cli.ArgumentParser;
 import org.example.filter.ClassificationResult;
 import org.example.filter.LineClassifier;
-import org.example.statistics.FloatStatistics;
-import org.example.statistics.GeneralStatistics;
-import org.example.statistics.IntegerStatistics;
-import org.example.statistics.StringStatistics;
+import org.example.io.TxtFileWriter;
+import org.example.statistics.*;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 
 public class App {
+
     public static void main(String[] args) {
+
+        Arguments arguments;
+        try {
+            arguments = new ArgumentParser().parse(args);
+        } catch (Exception e) {
+            System.err.println("Ошибка аргументов: " + e.getMessage());
+            return;
+        }
+
+        LineClassifier classifier = new LineClassifier();
+
         GeneralStatistics<BigInteger> intStats = new IntegerStatistics();
         GeneralStatistics<BigDecimal> floatStats = new FloatStatistics();
         GeneralStatistics<String> stringStats = new StringStatistics();
-        LineClassifier classifier = new LineClassifier();
 
-        TxtFileReader txtFileReader = new TxtFileReader();
+        List<String> integersOut = new ArrayList<>();
+        List<String> floatsOut = new ArrayList<>();
+        List<String> stringsOut = new ArrayList<>();
 
-        Path path = Paths.get("D:\\IdeaProjects\\TxtFileSorter\\src\\main\\resources\\In1.txt");
+        for (Path inputFile : arguments.getInputFiles()) {
 
+            if (!Files.exists(inputFile)) {
+                System.err.println("Файл не найден: " + inputFile);
+                continue;
+            }
 
-        List<String> testLines = txtFileReader.readTxt(path);
+            try {
+                List<String> lines = Files.readAllLines(inputFile);
 
-        for (String line : testLines) {
-            ClassificationResult result = classifier.classify(line);
-            switch (result.getType()) {
-                case INTEGER:
-                    BigInteger bi = result.getValue();
-                    intStats.accept(result.getValue());
-                    System.out.println("INTEGER: " + bi);
-                    break;
-                case FLOAT:
-                    BigDecimal bd = result.getValue();
-                    floatStats.accept(result.getValue());
-                    System.out.println("FLOAT: " + bd);
-                    break;
-                case STRING:
-                    String st = result.getValue();
-                    stringStats.accept(result.getValue());
-                    System.out.println("STRING: " + st);
-                    break;
+                for (String line : lines) {
+                    ClassificationResult result = classifier.classify(line);
+
+                    switch (result.getType()) {
+                        case INTEGER -> {
+                            BigInteger v = result.getValue();
+                            intStats.accept(v);
+                            integersOut.add(v.toString());
+                        }
+                        case FLOAT -> {
+                            BigDecimal v = result.getValue();
+                            floatStats.accept(v);
+                            floatsOut.add(v.toString());
+                        }
+                        case STRING -> {
+                            String v = result.getValue();
+                            stringStats.accept(v);
+                            stringsOut.add(v);
+                        }
+                    }
+                }
+
+            } catch (Exception e) {
+                System.err.println("Ошибка чтения файла " + inputFile + ": " + e.getMessage());
             }
         }
-        intStats.print(true);
-        floatStats.print(true);
-        stringStats.print(true);
+
+        try {
+            TxtFileWriter writer = new TxtFileWriter(
+                    arguments.getOutputDir(),
+                    arguments.getPrefix(),
+                    arguments.isAppend()
+            );
+
+            writer.writeIfNotEmpty("integers", integersOut);
+            writer.writeIfNotEmpty("floats", floatsOut);
+            writer.writeIfNotEmpty("strings", stringsOut);
+
+        } catch (Exception e) {
+            System.err.println("Ошибка записи файлов: " + e.getMessage());
+        }
+
+        boolean fullStats = arguments.getStatisticsMode() == Arguments.StatisticsMode.FULL;
+        boolean shortStats = arguments.getStatisticsMode() == Arguments.StatisticsMode.SHORT;
+
+        if (fullStats || shortStats) {
+            intStats.print(fullStats);
+            floatStats.print(fullStats);
+            stringStats.print(fullStats);
+        }
     }
 }
